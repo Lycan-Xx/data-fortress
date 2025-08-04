@@ -21,23 +21,23 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <TabNav currentTab={currentTab} onTabChange={setCurrentTab} />
-      <main className="transition-all duration-300">
+      <main className="flex-1 transition-all duration-300">
         {renderCurrentTab()}
       </main>
       
       {/* Terminal-style footer */}
-      <footer className="border-t border-terminal-border bg-terminal-bg mt-12">
+      <footer className="border-t border-terminal-border bg-terminal-bg mt-auto">
         <div className="container mx-auto px-6 py-4">
-          <div className="flex justify-between items-center text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground gap-2">
             <div className="flex items-center space-x-4">
-              <span className="text-primary">◉</span>
+              <span className="text-primary pulse-glow">◉</span>
               <span>CyberSec Toolkit v1.0</span>
             </div>
             <div className="flex items-center space-x-4">
               <span>Secure • Private • Open Source</span>
-              <span className="text-success">●</span>
+              <span className="text-success animate-glow-pulse">●</span>
             </div>
           </div>
         </div>

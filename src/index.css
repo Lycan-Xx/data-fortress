@@ -100,4 +100,52 @@
       0 0 20px hsl(var(--neon-glow) / 0.2),
       inset 0 0 10px hsl(var(--neon-glow) / 0.1);
   }
+
+  /* Gamification animations */
+  .pulse-glow {
+    animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 5px hsl(var(--neon-glow) / 0.3);
+    }
+    50% {
+      box-shadow: 0 0 20px hsl(var(--neon-glow) / 0.6), 0 0 30px hsl(var(--neon-glow) / 0.4);
+    }
+  }
+
+  .slide-up {
+    animation: slide-up 0.5s ease-out;
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .card-stack {
+    perspective: 1000px;
+  }
+
+  .card-deck {
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .game-notification {
+    animation: notification-bounce 0.5s ease-out;
+  }
+
+  @keyframes notification-bounce {
+    0% { transform: scale(0.8) translateY(-10px); opacity: 0; }
+    50% { transform: scale(1.05) translateY(0); opacity: 1; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
 }

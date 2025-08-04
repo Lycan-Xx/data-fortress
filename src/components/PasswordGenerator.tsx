@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, RefreshCw } from "lucide-react";
+import { Copy, RefreshCw, Zap, Shield, Lock } from "lucide-react";
 
 interface GeneratorOptions {
   length: number;
@@ -106,24 +106,53 @@ const PasswordGenerator = () => {
 
   const strengthIndicator = getStrengthIndicator();
 
+  useEffect(() => {
+    // Listen for navigation events from other components
+    const handleSwitchToTab = () => {
+      // Auto-generate a password when navigated here from breach detection
+      generatePassword();
+    };
+
+    window.addEventListener('switchToTab', handleSwitchToTab);
+    return () => window.removeEventListener('switchToTab', handleSwitchToTab);
+  }, []);
+
   return (
-    <div className="container mx-auto p-6 max-w-2xl">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-glow mb-2">🔐 Password Forge</h1>
-        <p className="text-muted-foreground">Generate cryptographically secure passwords</p>
+    <div className="container mx-auto p-4 sm:p-6 max-w-2xl">
+      {/* Story Section */}
+      <div className="text-center mb-8 slide-up">
+        <div className="flex justify-center mb-4">
+          <Lock className="w-12 h-12 text-primary animate-float" />
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-glow mb-4">Password Forge</h1>
+        <div className="bg-card border border-terminal-border rounded-lg p-6 mb-6 terminal-glow">
+          <h2 className="text-lg font-semibold text-accent mb-3">Your Digital Weapon Against Cyber Threats</h2>
+          <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
+            In the digital arms race, your password is your primary weapon. Weak passwords are like paper shields 
+            against artillery—they offer no real protection. Every character adds exponential strength to your defense. 
+            Generate passwords so complex that even quantum computers would need centuries to crack them.
+          </p>
+        </div>
       </div>
 
-      <Card className="terminal-glow mb-6">
+      <Card className="terminal-glow mb-6 game-notification">
         <CardHeader>
-          <CardTitle className="text-primary">Password Configuration</CardTitle>
+          <CardTitle className="text-primary flex items-center gap-2">
+            <Zap className="w-5 h-5" />
+            Password Configuration
+          </CardTitle>
           <CardDescription>
-            Customize your password generation settings
+            Customize your digital armor specifications
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <Label className="text-sm font-medium">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Shield className="w-4 h-4" />
               Password Length: {options.length}
+              <span className="text-xs text-muted-foreground">
+                ({options.length < 12 ? 'Vulnerable' : options.length < 16 ? 'Good' : 'Excellent'})
+              </span>
             </Label>
             <Slider
               value={[options.length]}
@@ -135,7 +164,7 @@ const PasswordGenerator = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="uppercase"
@@ -196,33 +225,36 @@ const PasswordGenerator = () => {
 
           <Button 
             onClick={generatePassword}
-            className="w-full terminal-glow"
+            className="w-full terminal-glow transition-all duration-300 hover:scale-105"
             size="lg"
           >
             <RefreshCw className="mr-2 h-4 w-4" />
-            Generate Password
+            Forge New Password
           </Button>
         </CardContent>
       </Card>
 
       {password && (
-        <Card className="terminal-glow">
+        <Card className="terminal-glow slide-up">
           <CardHeader>
-            <CardTitle className="text-primary">Generated Password</CardTitle>
+            <CardTitle className="text-primary flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              Generated Password
+            </CardTitle>
             <CardDescription>
-              Your secure password is ready
+              Your digital fortress key is ready
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="relative">
-                <div className="p-4 bg-terminal-bg border border-terminal-border rounded-lg font-mono text-lg break-all terminal-glow">
+                <div className="p-4 bg-terminal-bg border border-terminal-border rounded-lg font-mono text-sm sm:text-lg break-all terminal-glow overflow-x-auto">
                   {password}
                 </div>
                 <Button
                   onClick={copyPassword}
                   size="sm"
-                  className="absolute top-2 right-2 terminal-glow"
+                  className="absolute top-2 right-2 terminal-glow transition-all duration-300 hover:scale-110"
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -230,21 +262,41 @@ const PasswordGenerator = () => {
 
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Strength:</span>
+                  <span className="text-sm font-medium">Security Level:</span>
                   <span className="text-sm font-medium">{strengthIndicator.text}</span>
                 </div>
-                <div className="w-full bg-muted rounded-full h-2">
+                <div className="w-full bg-muted rounded-full h-3">
                   <div 
-                    className={`${strengthIndicator.color} h-2 rounded-full transition-all duration-300`}
+                    className={`${strengthIndicator.color} h-3 rounded-full transition-all duration-500 animate-glow-pulse`}
                     style={{ width: `${(strengthIndicator.strength / 6) * 100}%` }}
                   />
                 </div>
               </div>
 
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p>• Password length: {password.length} characters</p>
-                <p>• Estimated entropy: ~{Math.floor(Math.log2(Math.pow(85, password.length)))} bits</p>
-                <p>• Store in a password manager for best security</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                <div className="bg-secondary rounded-lg p-3">
+                  <div className="text-lg font-bold text-primary">{password.length}</div>
+                  <div className="text-xs text-muted-foreground">Characters</div>
+                </div>
+                <div className="bg-secondary rounded-lg p-3">
+                  <div className="text-lg font-bold text-accent">
+                    {Math.floor(Math.log2(Math.pow(85, password.length)))}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Entropy Bits</div>
+                </div>
+                <div className="bg-secondary rounded-lg p-3">
+                  <div className="text-lg font-bold text-success">10¹⁶⁺</div>
+                  <div className="text-xs text-muted-foreground">Years to Crack</div>
+                </div>
+              </div>
+
+              <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p className="font-medium text-accent">Security Recommendations:</p>
+                  <p>• Store in a password manager immediately</p>
+                  <p>• Use unique passwords for every account</p>
+                  <p>• Enable 2FA wherever possible</p>
+                </div>
               </div>
             </div>
           </CardContent>
