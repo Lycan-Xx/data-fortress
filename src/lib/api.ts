@@ -59,4 +59,11 @@ export const revealPassword = (id: number) =>
 export const scanBreaches = (masterPassword: string, credentialId?: number) =>
   api.post('/api/breach/scan', credentialId ? { credentialId, masterPassword } : { masterPassword });
 
+// Record email breaches manually (user copies from haveibeenpwned.com)
+export const recordEmailBreaches = (email: string, breaches: string[]) =>
+  api.post('/api/breach/record-email', { email, breaches });
+
+// Get breach status for all credentials
+export const getBreachStatus = () => api.get('/api/breach/status');
+
 export default api;

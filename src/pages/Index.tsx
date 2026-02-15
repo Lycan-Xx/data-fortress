@@ -1,8 +1,7 @@
 import { useState, useCallback } from "react";
 import TabNav from "@/components/TabNav";
 import VaultTable from "@/components/VaultTable";
-import PasswordGenerator from "@/components/PasswordGenerator";
-import PasswordStrengthChecker from "@/components/PasswordStrengthChecker";
+import EmailLookup from "@/components/EmailLookup";
 
 const Index = () => {
   const [currentTab, setCurrentTab] = useState(0);
@@ -17,9 +16,7 @@ const Index = () => {
       case 0:
         return <VaultTable onBreachCountChange={handleBreachCountChange} />;
       case 1:
-        return <PasswordGenerator />;
-      case 2:
-        return <PasswordStrengthChecker />;
+        return <EmailLookup />;
       default:
         return <VaultTable onBreachCountChange={handleBreachCountChange} />;
     }
