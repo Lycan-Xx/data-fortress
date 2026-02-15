@@ -10,16 +10,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Shield, RefreshCw, Copy, Settings } from "lucide-react";
+import { Eye, EyeOff, Shield, RefreshCw, Copy, X } from "lucide-react";
 
 interface CredentialData {
   id?: number;
@@ -68,19 +62,24 @@ const AddCredentialModal = ({
   });
   const { toast } = useToast();
 
+  // Reset state when modal opens/closes or editData changes
   useEffect(() => {
-    if (editData) {
-      setSiteName(editData.site_name);
-      setSiteUrl(editData.site_url);
-      setUsername(editData.username);
-      setPassword(editData.password || "");
-    } else {
-      setSiteName("");
-      setSiteUrl("");
-      setUsername("");
-      setPassword("");
+    if (open) {
+      if (editData) {
+        setSiteName(editData.site_name);
+        setSiteUrl(editData.site_url);
+        setUsername(editData.username);
+        setPassword(editData.password || "");
+      } else {
+        setSiteName("");
+        setSiteUrl("");
+        setUsername("");
+        setPassword("");
+      }
+      setGeneratedPassword("");
+      setShowGenerator(false);
     }
-  }, [editData, open]);
+  }, [open, editData]);
 
   const generatePassword = () => {
     let charset = "";
@@ -114,14 +113,9 @@ const AddCredentialModal = ({
     }
 
     setGeneratedPassword(result);
-  };
-
-  const useGeneratedPassword = () => {
-    if (generatedPassword) {
-      setPassword(generatedPassword);
-      setShowGenerator(false);
-      toast({ title: "Password applied", description: "Generated password has been set" });
-    }
+    setPassword(result);
+    setShowGenerator(false);
+    toast({ title: "Password generated and applied!" });
   };
 
   const copyGeneratedPassword = async () => {
@@ -146,9 +140,10 @@ const AddCredentialModal = ({
     return Math.min(score, 6);
   };
 
-  const strengthScore = getStrengthScore(password || generatedPassword);
+  const currentPassword = password || generatedPassword;
+  const strengthScore = getStrengthScore(currentPassword);
   const strengthLabels = ["", "Very Weak", "Weak", "Fair", "Good", "Strong", "Very Strong"];
-  const strengthColors = ["bg-muted", "bg-error", "bg-error", "bg-warning", "bg-warning", "bg-success", "bg-primary"];
+  const strengthColors = ["bg-muted", "bg-red-500", "bg-red-500", "bg-yellow-500", "bg-yellow-500", "bg-green-500", "bg-blue-500"];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,191 +163,122 @@ const AddCredentialModal = ({
     onOpenChange(false);
   };
 
-  const PasswordGeneratorDialog = () => (
-    <Dialog open={showGenerator} onOpenChange={setShowGenerator}>
-      <DialogContent className="bg-card border-terminal-border terminal-glow sm:max-w-lg max-h-[90vh] overflow-y-auto">
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent 
+        className="bg-card border-terminal-border terminal-glow sm:max-w-lg max-h-[90vh] overflow-y-auto"
+        onPointerDownOutside={(e) => {
+          if (showGenerator) {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="text-primary flex items-center gap-2">
-            <RefreshCw className="w-5 h-5" />
-            Password Generator
+            <Shield className="w-5 h-5" />
+            {editData ? "Edit Credential" : "Add Credential"}
           </DialogTitle>
           <DialogDescription>
-            Customize your password specifications
+            {editData
+              ? "Update this credential entry in your vault"
+              : "Add a new credential to your encrypted vault"}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          <div>
-            <Label className="text-sm font-medium">
-              Password Length: {generatorOptions.length}
-              <span className="text-xs text-muted-foreground ml-2">
-                ({generatorOptions.length < 12 ? "Vulnerable" : generatorOptions.length < 16 ? "Good" : "Excellent"})
-              </span>
-            </Label>
-            <Slider
-              value={[generatorOptions.length]}
-              onValueChange={(value) => setGeneratorOptions({ ...generatorOptions, length: value[0] })}
-              max={64}
-              min={8}
-              step={1}
-              className="mt-2"
-            />
-          </div>
+        {/* Generator Panel - Inline */}
+        {showGenerator ? (
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-primary">Password Generator</h3>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowGenerator(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="uppercase"
-                checked={generatorOptions.includeUppercase}
-                onCheckedChange={(checked) =>
-                  setGeneratorOptions({ ...generatorOptions, includeUppercase: checked as boolean })
-                }
+            <div>
+              <Label className="text-sm font-medium">
+                Length: {generatorOptions.length}
+              </Label>
+              <Slider
+                value={[generatorOptions.length]}
+                onValueChange={(value) => setGeneratorOptions({ ...generatorOptions, length: value[0] })}
+                max={64}
+                min={8}
+                step={1}
+                className="mt-2"
               />
-              <Label htmlFor="uppercase" className="text-sm">Uppercase (A-Z)</Label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="uppercase"
+                  checked={generatorOptions.includeUppercase}
+                  onCheckedChange={(checked) =>
+                    setGeneratorOptions({ ...generatorOptions, includeUppercase: checked as boolean })
+                  }
+                />
+                <Label htmlFor="uppercase" className="text-sm">Uppercase</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="lowercase"
+                  checked={generatorOptions.includeLowercase}
+                  onCheckedChange={(checked) =>
+                    setGeneratorOptions({ ...generatorOptions, includeLowercase: checked as boolean })
+                  }
+                />
+                <Label htmlFor="lowercase" className="text-sm">Lowercase</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="numbers"
+                  checked={generatorOptions.includeNumbers}
+                  onCheckedChange={(checked) =>
+                    setGeneratorOptions({ ...generatorOptions, includeNumbers: checked as boolean })
+                  }
+                />
+                <Label htmlFor="numbers" className="text-sm">Numbers</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="symbols"
+                  checked={generatorOptions.includeSymbols}
+                  onCheckedChange={(checked) =>
+                    setGeneratorOptions({ ...generatorOptions, includeSymbols: checked as boolean })
+                  }
+                />
+                <Label htmlFor="symbols" className="text-sm">Symbols</Label>
+              </div>
             </div>
 
             <div className="flex items-center space-x-2">
               <Checkbox
-                id="lowercase"
-                checked={generatorOptions.includeLowercase}
+                id="exclude-similar"
+                checked={generatorOptions.excludeSimilar}
                 onCheckedChange={(checked) =>
-                  setGeneratorOptions({ ...generatorOptions, includeLowercase: checked as boolean })
+                  setGeneratorOptions({ ...generatorOptions, excludeSimilar: checked as boolean })
                 }
               />
-              <Label htmlFor="lowercase" className="text-sm">Lowercase (a-z)</Label>
+              <Label htmlFor="exclude-similar" className="text-sm">
+                Exclude similar (i, l, 1, L, o, 0, O)
+              </Label>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="numbers"
-                checked={generatorOptions.includeNumbers}
-                onCheckedChange={(checked) =>
-                  setGeneratorOptions({ ...generatorOptions, includeNumbers: checked as boolean })
-                }
-              />
-              <Label htmlFor="numbers" className="text-sm">Numbers (0-9)</Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="symbols"
-                checked={generatorOptions.includeSymbols}
-                onCheckedChange={(checked) =>
-                  setGeneratorOptions({ ...generatorOptions, includeSymbols: checked as boolean })
-                }
-              />
-              <Label htmlFor="symbols" className="text-sm">Symbols (!@#$)</Label>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="exclude-similar"
-              checked={generatorOptions.excludeSimilar}
-              onCheckedChange={(checked) =>
-                setGeneratorOptions({ ...generatorOptions, excludeSimilar: checked as boolean })
-              }
-            />
-            <Label htmlFor="exclude-similar" className="text-sm">
-              Exclude similar (i, l, 1, L, o, 0, O)
-            </Label>
-          </div>
-
-          <Button
-            onClick={generatePassword}
-            className="w-full terminal-glow"
-            size="lg"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Generate Password
-          </Button>
-
-          {generatedPassword && (
-            <Card className="border-terminal-border">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-primary">Generated Password</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="relative">
-                  <div className="p-3 bg-terminal-bg border border-terminal-border rounded-lg font-mono text-sm break-all">
-                    {generatedPassword}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute top-1 right-1"
-                    onClick={copyGeneratedPassword}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span>Security Level:</span>
-                    <span>{strengthLabels[strengthScore]}</span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div
-                      className={`${strengthColors[strengthScore]} h-2 rounded-full transition-all`}
-                      style={{ width: `${(strengthScore / 6) * 100}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="bg-secondary rounded p-2">
-                    <div className="font-bold text-primary">{generatedPassword.length}</div>
-                    <div className="text-muted-foreground">Chars</div>
-                  </div>
-                  <div className="bg-secondary rounded p-2">
-                    <div className="font-bold text-accent">
-                      {Math.floor(Math.log2(Math.pow(85, generatedPassword.length)))}
-                    </div>
-                    <div className="text-muted-foreground">Entropy</div>
-                  </div>
-                  <div className="bg-secondary rounded p-2">
-                    <div className="font-bold text-success">10¹⁶⁺</div>
-                    <div className="text-muted-foreground">Crack Time</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowGenerator(false)}>
-              Cancel
+            <Button onClick={generatePassword} className="w-full terminal-glow">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Generate Password
             </Button>
-            <Button
-              onClick={useGeneratedPassword}
-              disabled={!generatedPassword}
-              className="terminal-glow"
-            >
-              Use This Password
-            </Button>
-          </DialogFooter>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-
-  return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="bg-card border-terminal-border terminal-glow sm:max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-primary flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              {editData ? "Edit Credential" : "Add Credential"}
-            </DialogTitle>
-            <DialogDescription>
-              {editData
-                ? "Update this credential entry in your vault"
-                : "Add a new credential to your encrypted vault"}
-            </DialogDescription>
-          </DialogHeader>
-
+          </div>
+        ) : (
+          /* Normal Form */
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="site-name">Site Name *</Label>
@@ -416,19 +342,15 @@ const AddCredentialModal = ({
                 <Button
                   type="button"
                   variant="outline"
-                  size="icon"
-                  onClick={() => {
-                    generatePassword();
-                    setShowGenerator(true);
-                  }}
+                  onClick={() => setShowGenerator(true)}
                   className="terminal-glow shrink-0"
-                  title="Open password generator"
+                  title="Generate password"
                 >
-                  <Settings className="h-4 w-4" />
+                  <RefreshCw className="h-4 w-4" />
                 </Button>
               </div>
 
-              {(password || generatedPassword) && (
+              {currentPassword && (
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs">
                     <span>Strength</span>
@@ -453,11 +375,9 @@ const AddCredentialModal = ({
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      <PasswordGeneratorDialog />
-    </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 };
 
