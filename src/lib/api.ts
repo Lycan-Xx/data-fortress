@@ -55,7 +55,8 @@ export const revealPassword = (id: number) =>
   api.get(`/api/credentials/${id}/reveal`);
 
 // Breach
-export const scanBreaches = (credentialId?: number) =>
-  api.post('/api/breach/scan', credentialId ? { credentialId } : {});
+// Note: Scanning now requires masterPassword to decrypt credentials
+export const scanBreaches = (masterPassword: string, credentialId?: number) =>
+  api.post('/api/breach/scan', credentialId ? { credentialId, masterPassword } : { masterPassword });
 
 export default api;

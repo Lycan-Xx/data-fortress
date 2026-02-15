@@ -14,6 +14,108 @@ function decryptPassword(encryptedPassword: string, iv: string, authTag: string,
 }
 
 /**
+ * Backward-compatible scan endpoint that works with the new approach.
+ * Requires masterPassword to decrypt credentials.
+ */
+export async function scanWithMasterPassword(req: AuthRequest, res: Response): Promise<void> {
+  const { credentialId, masterPassword } = req.body;
+
+  if (!masterPassword) {
+    res.status(400).json({ 
+      error: 'masterPassword is required for breach scanning',
+      hint: 'Provide your master password to decrypt credentials for scanning'
+    });
+    return;
+  }
+
+  try {
+    let credentials: vault.CredentialRow[];
+    
+    if (credentialId) {
+      // Single credential scan
+      const cred = vault.getById(credentialId);
+      if (!cred) {
+        res.status(404).json({ error: 'Credential not found' });
+        return;
+      }
+      credentials = [cred];
+    } else {
+      // Scan all credentials
+      credentials = vault.getAll();
+    }
+
+    if (credentials.length === 0) {
+      res.json({ results: [], message: 'No credentials to scan' });
+      return;
+    }
+
+    const results: Array<{
+      id: number;
+      site_name: string;
+      pwned: boolean;
+      pwned_count: number;
+    }> = [];
+
+    for (const cred of credentials) {
+      try {
+        // Decrypt the password using the provided master password
+        const password = decryptPassword(cred.encrypted_password, cred.iv, cred.auth_tag, masterPassword);
+        
+        // Check against Pwned Passwords API (free, no key needed)
+        const result = await checkPasswordBreach(password);
+        
+        // Update database
+        vault.updatePwnedCount(cred.id, result.count);
+        
+        results.push({
+          id: cred.id,
+          site_name: cred.site_name,
+          pwned: result.breached,
+          pwned_count: result.count
+        });
+
+        // Rate limiting: wait 100ms between requests
+        await sleep(100);
+      } catch (err) {
+        console.error(`Failed to scan credential ${cred.id}:`, err);
+        results.push({
+          id: cred.id,
+          site_name: cred.site_name,
+          pwned: false,
+          pwned_count: 0
+        });
+      }
+    }
+
+    const compromisedCount = results.filter(r => r.pwned).length;
+    
+    res.json({
+      results,
+      summary: {
+        total: results.length,
+        compromised: compromisedCount,
+        safe: results.length - compromisedCount
+      },
+      message: `Scanned ${results.length} passwords, ${compromisedCount} found in breaches`
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Password scan failed';
+    if (message.includes('Unsupported state') || message.includes('auth tag')) {
+      res.status(401).json({ error: 'Invalid master password' });
+      return;
+    }
+    res.status(500).json({ error: message });
+  }
+}
+
+/**
+ * Decrypt password using the stored cipher and user's master password
+ */
+function decryptPassword(encryptedPassword: string, iv: string, authTag: string, masterPassword: string): string {
+  return decrypt(encryptedPassword, iv, authTag, masterPassword);
+}
+
+/**
  * Scan a single credential's password against the free Pwned Passwords API.
  * This is a FREE scan - no API key required!
  * 

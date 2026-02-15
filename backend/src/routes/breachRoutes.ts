@@ -4,7 +4,8 @@ import {
   scanPassword, 
   scanAllPasswords, 
   recordEmailBreaches, 
-  getBreachStatus 
+  getBreachStatus,
+  scanWithMasterPassword
 } from '../controllers/breachController';
 
 const router = Router();
@@ -28,6 +29,15 @@ router.post('/scan-password', scanPassword);
  * Body: { masterPassword }
  */
 router.post('/scan-passwords', scanAllPasswords);
+
+/**
+ * POST /api/breach/scan
+ * 
+ * Backward-compatible endpoint for breach scanning
+ * Requires masterPassword to decrypt credentials for checking
+ * Body: { credentialId?, masterPassword }
+ */
+router.post('/scan', scanWithMasterPassword);
 
 // ============ MANUAL EMAIL BREACH LOOKUP (No API Key Required) ============
 

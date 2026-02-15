@@ -20,6 +20,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
   Eye,
@@ -66,6 +68,8 @@ const VaultTable = ({ onBreachCountChange }: VaultTableProps) => {
   const [editingCredential, setEditingCredential] = useState<any>(null);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [isDemo, setIsDemo] = useState(false);
+  const [masterPasswordForScan, setMasterPasswordForScan] = useState<string>("");
+  const [showMasterPasswordPrompt, setShowMasterPasswordPrompt] = useState(false);
   const { toast } = useToast();
 
   const fetchCredentials = useCallback(async () => {
@@ -141,21 +145,33 @@ const VaultTable = ({ onBreachCountChange }: VaultTableProps) => {
   };
 
   const handleScan = async () => {
+    // Show prompt for master password
+    setShowMasterPasswordPrompt(true);
+  };
+
+  const handleScanWithPassword = async () => {
+    if (!masterPasswordForScan) {
+      toast({ title: "Please enter your master password", variant: "destructive" });
+      return;
+    }
     setScanning(true);
+    setShowMasterPasswordPrompt(false);
     try {
       if (isDemo) {
         const updated = mockScanBreaches();
         setCredentials(updated);
         toast({ title: "Breach scan complete (demo)" });
       } else {
-        await scanBreaches();
+        await scanBreaches(masterPasswordForScan);
         await fetchCredentials();
         toast({ title: "Breach scan complete" });
       }
-    } catch {
-      toast({ title: "Scan failed", variant: "destructive" });
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || "Scan failed";
+      toast({ title: errorMessage, variant: "destructive" });
     } finally {
       setScanning(false);
+      setMasterPasswordForScan("");
     }
   };
 
@@ -499,6 +515,37 @@ const VaultTable = ({ onBreachCountChange }: VaultTableProps) => {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Master Password Prompt for Scan */}
+      <AlertDialog open={showMasterPasswordPrompt} onOpenChange={setShowMasterPasswordPrompt}>
+        <AlertDialogContent className="bg-card border-terminal-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enter Master Password</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your master password is needed to decrypt credentials for breach scanning.
+              Passwords are checked against the Have I Been Pwned database (free, no data sent except hashed prefix).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="masterPassword">Master Password</Label>
+            <Input
+              id="masterPassword"
+              type="password"
+              value={masterPasswordForScan}
+              onChange={(e) => setMasterPasswordForScan(e.target.value)}
+              placeholder="Enter your master password"
+              className="mt-2"
+              onKeyDown={(e) => e.key === "Enter" && handleScanWithPassword()}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setMasterPasswordForScan("")}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleScanWithPassword}>
+              Scan for Breaches
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

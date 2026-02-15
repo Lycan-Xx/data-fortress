@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
-import { Vault, KeyRound, Target } from "lucide-react";
+import { Vault, Target } from "lucide-react";
 
 interface TabNavProps {
   currentTab: number;
@@ -20,13 +20,6 @@ const TabNav = ({ currentTab, onTabChange, breachCount = 0 }: TabNavProps) => {
       description: "Manage encrypted credentials",
       story: "Your encrypted digital armory — every secret guarded by AES-256",
       icon: Vault,
-    },
-    { 
-      name: "Password Forge", 
-      shortName: "Generator",
-      description: "Forge unbreakable passwords",
-      story: "Craft weapons that guard your digital fortress",
-      icon: KeyRound,
     },
     { 
       name: "Strength Analyzer", 
