@@ -32,7 +32,6 @@ export async function scanWithMasterPassword(req: AuthRequest, res: Response): P
     let credentials: vault.CredentialRow[];
     
     if (credentialId) {
-      // Single credential scan
       const cred = vault.getById(credentialId);
       if (!cred) {
         res.status(404).json({ error: 'Credential not found' });
@@ -40,7 +39,6 @@ export async function scanWithMasterPassword(req: AuthRequest, res: Response): P
       }
       credentials = [cred];
     } else {
-      // Scan all credentials
       credentials = vault.getAll();
     }
 
@@ -58,13 +56,8 @@ export async function scanWithMasterPassword(req: AuthRequest, res: Response): P
 
     for (const cred of credentials) {
       try {
-        // Decrypt the password using the provided master password
         const password = decryptPassword(cred.encrypted_password, cred.iv, cred.auth_tag, masterPassword);
-        
-        // Check against Pwned Passwords API (free, no key needed)
         const result = await checkPasswordBreach(password);
-        
-        // Update database
         vault.updatePwnedCount(cred.id, result.count);
         
         results.push({
@@ -74,7 +67,6 @@ export async function scanWithMasterPassword(req: AuthRequest, res: Response): P
           pwned_count: result.count
         });
 
-        // Rate limiting: wait 100ms between requests
         await sleep(100);
       } catch (err) {
         console.error(`Failed to scan credential ${cred.id}:`, err);
@@ -109,21 +101,7 @@ export async function scanWithMasterPassword(req: AuthRequest, res: Response): P
 }
 
 /**
- * Decrypt password using the stored cipher and user's master password
- */
-function decryptPassword(encryptedPassword: string, iv: string, authTag: string, masterPassword: string): string {
-  return decrypt(encryptedPassword, iv, authTag, masterPassword);
-}
-
-/**
  * Scan a single credential's password against the free Pwned Passwords API.
- * This is a FREE scan - no API key required!
- * 
- * The password is checked using k-Anonymity:
- * - SHA-1 hash of password, only first 5 chars sent to HIBP
- * - Full password never leaves the server
- * 
- * NOTE: Requires the user's master password to decrypt the credential first.
  */
 export async function scanPassword(req: AuthRequest, res: Response): Promise<void> {
   const { credentialId, masterPassword } = req.body;
@@ -145,13 +123,8 @@ export async function scanPassword(req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    // Decrypt the password using the provided master password
     const password = decryptPassword(cred.encrypted_password, cred.iv, cred.auth_tag, masterPassword);
-    
-    // Check against Pwned Passwords API (free, no key needed)
     const result = await checkPasswordBreach(password);
-    
-    // Update the database with pwned count
     vault.updatePwnedCount(cred.id, result.count);
 
     res.json({
@@ -164,7 +137,6 @@ export async function scanPassword(req: AuthRequest, res: Response): Promise<voi
         : 'Password not found in known breaches'
     });
   } catch (err: unknown) {
-    // Error might be due to wrong master password
     const message = err instanceof Error ? err.message : 'Password scan failed';
     if (message.includes('Unsupported state') || message.includes('auth tag')) {
       res.status(401).json({ error: 'Invalid master password' });
@@ -176,9 +148,6 @@ export async function scanPassword(req: AuthRequest, res: Response): Promise<voi
 
 /**
  * Scan all credentials' passwords against the free Pwned Passwords API.
- * This is a FREE scan - no API key required!
- * 
- * NOTE: Requires the user's master password to decrypt credentials first.
  */
 export async function scanAllPasswords(req: AuthRequest, res: Response): Promise<void> {
   const { masterPassword } = req.body;
@@ -205,13 +174,8 @@ export async function scanAllPasswords(req: AuthRequest, res: Response): Promise
 
     for (const cred of credentials) {
       try {
-        // Decrypt the password using the provided master password
         const password = decryptPassword(cred.encrypted_password, cred.iv, cred.auth_tag, masterPassword);
-        
-        // Check against Pwned Passwords API
         const result = await checkPasswordBreach(password);
-        
-        // Update database
         vault.updatePwnedCount(cred.id, result.count);
         
         results.push({
@@ -221,7 +185,6 @@ export async function scanAllPasswords(req: AuthRequest, res: Response): Promise
           pwned_count: result.count
         });
 
-        // Rate limiting: wait 100ms between requests (Pwned Passwords has no limit but be polite)
         await sleep(100);
       } catch (err) {
         console.error(`Failed to scan credential ${cred.id}:`, err);
@@ -256,13 +219,6 @@ export async function scanAllPasswords(req: AuthRequest, res: Response): Promise
 
 /**
  * Manual email breach lookup.
- * Since checking emails requires a paid HIBP API key, this endpoint
- * allows users to manually record breach information.
- * 
- * Users can:
- * 1. Go to haveibeenpwned.com and search their email
- * 2. Copy the breach names they appear in
- * 3. Enter them here to track in SecureVault
  */
 export async function recordEmailBreaches(req: AuthRequest, res: Response): Promise<void> {
   const { email, breaches } = req.body;
@@ -281,7 +237,6 @@ export async function recordEmailBreaches(req: AuthRequest, res: Response): Prom
   }
 
   try {
-    // Find all credentials with this email
     const credentials = vault.getAll().filter(c => 
       c.username.toLowerCase() === email.toLowerCase()
     );
@@ -294,7 +249,6 @@ export async function recordEmailBreaches(req: AuthRequest, res: Response): Prom
       return;
     }
 
-    // Update all matching credentials
     for (const cred of credentials) {
       vault.updateBreachStatus(cred.id, 'compromised');
     }
@@ -312,7 +266,7 @@ export async function recordEmailBreaches(req: AuthRequest, res: Response): Prom
 }
 
 /**
- * Get breach status for all credentials (combines password and email breach data)
+ * Get breach status for all credentials
  */
 export async function getBreachStatus(req: AuthRequest, res: Response): Promise<void> {
   try {
