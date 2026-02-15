@@ -17,6 +17,10 @@ export const setToken = (token: string | null) => {
 
 export const getToken = () => authToken;
 
+export const clearToken = () => {
+  authToken = null;
+};
+
 // Inject JWT on every request
 api.interceptors.request.use((config) => {
   if (authToken) {

@@ -28,6 +28,10 @@ const App = () => {
       .finally(() => setChecking(false));
   }, []);
 
+  const handleLogout = () => {
+    setToken(null);
+  };
+
   if (checking) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -53,7 +57,7 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<Index onLogout={handleLogout} />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

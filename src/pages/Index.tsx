@@ -1,15 +1,29 @@
 import { useState, useCallback } from "react";
+import { Button } from "@/components/ui/button";
 import TabNav from "@/components/TabNav";
 import VaultTable from "@/components/VaultTable";
 import EmailLookup from "@/components/EmailLookup";
+import { clearToken } from "@/lib/api";
+import { Lock } from "lucide-react";
 
-const Index = () => {
+interface IndexProps {
+  onLogout?: () => void;
+}
+
+const Index = ({ onLogout }: IndexProps) => {
   const [currentTab, setCurrentTab] = useState(0);
   const [breachCount, setBreachCount] = useState(0);
 
   const handleBreachCountChange = useCallback((count: number) => {
     setBreachCount(count);
   }, []);
+
+  const handleLockVault = () => {
+    clearToken();
+    if (onLogout) {
+      onLogout();
+    }
+  };
 
   const renderCurrentTab = () => {
     switch (currentTab) {
@@ -39,6 +53,16 @@ const Index = () => {
             <div className="flex items-center space-x-4">
               <span>Encrypted · Private · AES-256-GCM</span>
               <span className="text-success animate-glow-pulse">●</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLockVault}
+                className="ml-4 text-muted-foreground hover:text-primary"
+                title="Lock Vault"
+              >
+                <Lock className="w-4 h-4 mr-1" />
+                Lock
+              </Button>
             </div>
           </div>
         </div>
