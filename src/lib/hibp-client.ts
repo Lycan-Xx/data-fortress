@@ -4,7 +4,7 @@
  * Free API - no key required
  */
 
-const PWNED_API_BASE = 'https://api.pwnedpasswords.com';
+const PWNED_API_BASE = '/pwned';
 
 /**
  * Check if a password has been breached using k-Anonymity
