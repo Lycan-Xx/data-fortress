@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import MasterLogin from "./components/MasterLogin";
-import { checkAuthStatus } from "@/lib/api";
+import { checkAuthStatus, initializeApp, setMasterPassword } from "@/lib/api";
 
 const queryClient = new QueryClient();
 
@@ -15,21 +15,33 @@ const App = () => {
   const [token, setToken] = useState<string | null>(null);
   const [isFirstRun, setIsFirstRun] = useState(true);
   const [checking, setChecking] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
-    checkAuthStatus()
-      .then((res) => {
-        setIsFirstRun(!res.data.isConfigured);
+    // Initialize IndexedDB first
+    initializeApp()
+      .then(() => {
+        // Then check if vault is configured
+        return checkAuthStatus();
       })
-      .catch(() => {
-        // Backend unreachable — default to first-run demo
-        setIsFirstRun(true);
+      .then((res) => {
+        setIsFirstRun(!res.isConfigured);
+      })
+      .catch((err) => {
+        console.error('Initialization error:', err);
+        setInitError(err.message);
       })
       .finally(() => setChecking(false));
   }, []);
 
+  const handleAuthenticated = (newToken: string, password: string) => {
+    setToken(newToken);
+    setMasterPassword(password);
+  };
+
   const handleLogout = () => {
     setToken(null);
+    setMasterPassword('');
   };
 
   if (checking) {
@@ -40,12 +52,20 @@ const App = () => {
     );
   }
 
+  if (initError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-destructive font-mono text-lg">Error: {initError}</div>
+      </div>
+    );
+  }
+
   if (!token) {
     return (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <MasterLogin isFirstRun={isFirstRun} onAuthenticated={setToken} />
+        <MasterLogin isFirstRun={isFirstRun} onAuthenticated={handleAuthenticated} />
       </TooltipProvider>
     );
   }

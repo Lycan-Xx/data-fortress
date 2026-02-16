@@ -20,7 +20,7 @@ interface CredentialData {
   site_name: string;
   site_url: string;
   username: string;
-  password: string;
+  password?: string; // Optional for editing
 }
 
 interface AddCredentialModalProps {
@@ -148,8 +148,14 @@ const AddCredentialModal = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const finalPassword = password || generatedPassword;
-    if (!siteName.trim() || !username.trim() || !finalPassword.trim()) {
+    if (!siteName.trim() || !username.trim()) {
       toast({ title: "Please fill all required fields", variant: "destructive" });
+      return;
+    }
+    // For editing: if no new password entered, we need to handle differently
+    // But for now, require password
+    if (!finalPassword.trim() && !editData?.password) {
+      toast({ title: "Please enter a password", variant: "destructive" });
       return;
     }
     onSubmit({
@@ -157,7 +163,7 @@ const AddCredentialModal = ({
       site_name: siteName.trim(),
       site_url: siteUrl.trim(),
       username: username.trim(),
-      password: finalPassword,
+      password: finalPassword || editData?.password || "",
     });
     setGeneratedPassword("");
     onOpenChange(false);

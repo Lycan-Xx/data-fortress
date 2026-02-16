@@ -6,11 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Lock, Shield, Eye, EyeOff, KeyRound } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { setupMasterPassword, login, setToken } from "@/lib/api";
+import { setupMaster, login } from "@/lib/api";
 
 interface MasterLoginProps {
   isFirstRun: boolean;
-  onAuthenticated: (token: string) => void;
+  onAuthenticated: (token: string, password: string) => void;
 }
 
 const MasterLogin = ({ isFirstRun, onAuthenticated }: MasterLoginProps) => {
@@ -51,30 +51,20 @@ const MasterLogin = ({ isFirstRun, onAuthenticated }: MasterLoginProps) => {
 
     setLoading(true);
     try {
-      const res = isFirstRun
-        ? await setupMasterPassword(password)
-        : await login(password);
-      const token = res.data.token;
-      setToken(token);
-      onAuthenticated(token);
-      toast({ title: isFirstRun ? "Vault created successfully" : "Vault unlocked" });
-    } catch (err: any) {
-      // Fallback for demo mode when backend is unavailable
-      if (err.code === 'ERR_NETWORK') {
-        const demoToken = 'demo-token-' + Date.now();
-        setToken(demoToken);
-        onAuthenticated(demoToken);
-        toast({
-          title: isFirstRun ? "Demo vault created" : "Demo vault unlocked",
-          description: "Running in demo mode — no backend connected",
-        });
+      let token: string;
+      
+      if (isFirstRun) {
+        const res = await setupMaster(password);
+        token = res.token;
       } else {
-        toast({
-          title: "Authentication failed",
-          description: err.response?.data?.error || "Invalid credentials",
-          variant: "destructive",
-        });
+        const res = await login(password);
+        token = res.token;
       }
+      
+      onAuthenticated(token, password);
+      toast({ title: isFirstRun ? "Vault created successfully" : "Vault unlocked" });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Invalid credentials';
     } finally {
       setLoading(false);
     }
