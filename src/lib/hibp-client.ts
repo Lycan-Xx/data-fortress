@@ -4,7 +4,7 @@
  * Free API - no key required
  */
 
-const PWNED_API_BASE = '/pwned';
+const PWNED_API_BASE = 'https://corsproxy.io/?https://api.pwnedpasswords.com';
 
 /**
  * Check if a password has been breached using k-Anonymity
@@ -26,7 +26,7 @@ export async function checkPasswordBreach(password: string): Promise<number> {
   // Query the API with only the prefix (k-Anonymity)
   const response = await fetch(`${PWNED_API_BASE}/range/${prefix}`, {
     headers: {
-      'User-Agent': 'SecureVault-PasswordManager',
+      // No custom headers to avoid CORS issues
     },
   });
 
